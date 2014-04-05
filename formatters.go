@@ -53,18 +53,50 @@ func (*vim_formatter) write_candidates(candidates []candidate, num int) {
 			fmt.Printf(", ")
 		}
 
+		func_property := c.Type
+		abbr := fmt.Sprintf("%s %s %s", c.Class, c.Name, c.Type)
+		if c.Class == decl_func {
+			func_property = c.Type[len("func"):]
+			abbr = fmt.Sprintf("%s %s%s", c.Class, c.Name, func_property)
+		}
+
 		word := c.Name
 		if c.Class == decl_func {
-			word += "("
 			if strings.HasPrefix(c.Type, "func()") {
-				word += ")"
+				word += "()"
+			} else {
+				word += func_property
+				sign_word := word
+				pair := -1
+				start := 0
+				for i, n := 0, len(word); i < n; i++ {
+					if word[i] == '(' {
+						if pair < 0 {
+							pair = 0
+							start = i + 1
+							sign_word = sign_word[0:i+1] + "<"
+						}
+						pair += 1
+					} else if word[i] == ')' {
+						pair -= 1
+						if pair == 0 {
+							sign_word = sign_word + word[start:i] + ">)"
+							break
+						}
+					}
+
+					if word[i] == ',' {
+						sign_word = sign_word + word[start:i] + ">, <"
+						start = i + 1
+						if word[i+1] == ' ' {
+							start += 1
+						}
+					}
+				}
+				word = sign_word
 			}
 		}
 
-		abbr := fmt.Sprintf("%s %s %s", c.Class, c.Name, c.Type)
-		if c.Class == decl_func {
-			abbr = fmt.Sprintf("%s %s%s", c.Class, c.Name, c.Type[len("func"):])
-		}
 		fmt.Printf("{'word': '%s', 'abbr': '%s', 'info': '%s'}", word, abbr, abbr)
 	}
 	fmt.Printf("]]")
