@@ -4,7 +4,7 @@
 
 ;; Author: nsf <no.smile.face@gmail.com>
 ;; Keywords: languages
-;; Package-Requires: ((company "0.6.12"))
+;; Package-Requires: ((company "0.8.0"))
 
 ;; No license, this code is under public domain, do whatever you want.
 
@@ -15,12 +15,28 @@
   (require 'company)
   (require 'go-mode))
 
+;; Close gocode daemon at exit unless it was already running
+(eval-after-load "go-mode"
+  '(progn
+     (let* ((user (or (getenv "USER") "all"))
+            (sock (format (concat temporary-file-directory "gocode-daemon.%s") user)))
+       (unless (file-exists-p sock)
+         (add-hook 'kill-emacs-hook #'(lambda ()
+                                        (ignore-errors
+                                          (call-process "gocode" nil nil nil "close"))))))))
+
 (defgroup company-go nil
   "Completion back-end for Go."
   :group 'company)
 
 (defcustom company-go-show-annotation nil
   "Show an annotation inline with the candidate."
+  :group 'company-go
+  :type 'boolean)
+
+(defcustom company-go-begin-after-member-access t
+  "When non-nil, automatic completion will start whenever the current
+symbol is preceded by a \".\", ignoring `company-minimum-prefix-length'."
   :group 'company-go
   :type 'boolean)
 
@@ -83,6 +99,13 @@
         (kill-buffer temp-buffer)
         (delete-file temp)))))
 
+(defun company-go--prefix ()
+  "Returns the symbol to complete. Also, if point is on a dot,
+triggers a completion immediately."
+  (if company-go-begin-after-member-access
+      (company-grab-symbol-cons "\\." 1)
+    (company-grab-symbol)))
+
 (defun company-go--godef-jump (point)
   (condition-case nil
       (let ((file (car (godef--call point))))
@@ -110,7 +133,9 @@
 ;;;###autoload
 (defun company-go (command &optional arg &rest ignored)
   (case command
-    (prefix (company-grab-word))
+    (prefix (and (derived-mode-p 'go-mode)
+                 (not (company-in-string-or-comment))
+                 (or (company-go--prefix) 'stop)))
     (candidates (company-go--candidates))
     (meta (get-text-property 0 'meta arg))
     (annotation
