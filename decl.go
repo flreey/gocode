@@ -280,6 +280,9 @@ func check_for_anon_type(t ast.Expr, flags decl_flags, s *scope) ast.Expr {
 //-------------------------------------------------------------------------
 
 func new_decl_full(name string, class decl_class, flags decl_flags, typ, v ast.Expr, vi int, s *scope) *decl {
+	if name == "_" {
+		return nil
+	}
 	d := new(decl)
 	d.name = name
 	d.class = class
@@ -680,6 +683,8 @@ func (a *anonymous_typer) Visit(node ast.Node) ast.Visitor {
 	case *ast.CallExpr:
 		t.Fun = check_for_anon_type(t.Fun, a.flags, a.scope)
 	case *ast.ParenExpr:
+		t.X = check_for_anon_type(t.X, a.flags, a.scope)
+	case *ast.StarExpr:
 		t.X = check_for_anon_type(t.X, a.flags, a.scope)
 	case *ast.GenDecl:
 		switch t.Tok {
