@@ -74,19 +74,19 @@ func (*vim_formatter) write_candidates(candidates []candidate, num int) {
 						if pair < 0 {
 							pair = 0
 							start = i + 1
-							sign_word = sign_word[0:i+1] + "<"
+							sign_word = sign_word[0:i+1] + "`<"
 						}
 						pair += 1
 					} else if word[i] == ')' {
 						pair -= 1
 						if pair == 0 {
-							sign_word = sign_word + word[start:i] + ">)"
+							sign_word = sign_word + word[start:i] + ">`)"
 							break
 						}
 					}
 
 					if word[i] == ',' {
-						sign_word = sign_word + word[start:i] + ">, <"
+						sign_word = sign_word + word[start:i] + ">`, `<"
 						start = i + 1
 						if word[i+1] == ' ' {
 							start += 1
